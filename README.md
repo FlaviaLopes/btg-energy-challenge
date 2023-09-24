@@ -44,3 +44,10 @@ apresente graficamente a resposta para a pergunta.
 ### Resalvas
 - É permitido a utilização de bibliotecas extras
 - A entrega do desafio deve ser feita por GIT. Responda o email com o link do seu repositório.
+
+___
+O gráfico de eixo duplo apresenta a precipitação diária do período, eixo esquerdo e barras, e a precipitação acumulada, eixo direito e linha.
+A precipitação acumulada total da Bacia de Camargos nos cinco pontos medidos no período foi de 608,2 mm, com os dias 9 e 10 acumlando aproximadamente metade da precipitação do período.
+
+
+![Resposta gráfica](ETA40_pacummulated021221a111221.png "Precipitação diária e acumuladada da Bacia de Camargos")
