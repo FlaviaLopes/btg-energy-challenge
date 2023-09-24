@@ -1,3 +1,5 @@
+import sys
+
 import pandas as pd
 import re
 import time
@@ -89,9 +91,23 @@ def plot_accumulated_precipitation(data_df: pd.DataFrame, x='forecasted_date', y
     plt.savefig(f"ETA40_pacummulated{data_df[x].min().replace('/', '')}a{data_df[x].max().replace('/', '')}.png")
 
 
+def select_files_by_forecast_date(path: str, date: str) -> list:
+    """
+    Seleciona e retorna os arquivos do diretório path que tenham o padrão p{date}
+    :param path:
+    :param date:
+    :return:
+    """
+    forecast_files = [it for it in os.listdir(path) if f'p{date}' in it]
+    return forecast_files
+
+
 def main() -> None:
     forecast_files_dir = './forecast_files'
-    forecast_files = os.listdir(forecast_files_dir)
+    forecast_date = '011221'
+    contour_file = './PSATCMG_CAMARGOS.bln'
+
+    forecast_files = select_files_by_forecast_date(forecast_files_dir, forecast_date)
     forecast_files = [os.path.join(forecast_files_dir, it) for it in forecast_files]
     forecasted_date_pattern = re.compile(r'a(\d{6})\.dat')
     forecasted_dates = [forecasted_date_pattern.split(it)[1] for it in forecast_files]
@@ -103,8 +119,7 @@ def main() -> None:
         temp['forecasted_date'] = forecasted_date
         data_df = pd.concat([data_df, temp], axis=0)
 
-    contour_file = './PSATCMG_CAMARGOS.bln'
-    contour_df: pd.DataFrame = read_contour_file('PSATCMG_CAMARGOS.bln')
+    contour_df: pd.DataFrame = read_contour_file(contour_file)
     data_df = apply_contour(contour_df=contour_df, data_df=data_df)
 
     data_df = data_df.groupby('forecasted_date')[['data_value']].sum().reset_index()
