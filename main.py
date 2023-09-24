@@ -3,6 +3,8 @@ import re
 import time
 from functools import wraps
 import os
+import geopandas as gpd
+from shapely import Point, Polygon
 
 
 def read_data_file(file_path: str) -> pd.DataFrame:
@@ -29,7 +31,20 @@ def read_contour_file(file_path: str) -> pd.DataFrame:
 
 
 def apply_contour(contour_df: pd.DataFrame, data_df: pd.DataFrame) -> pd.DataFrame:
-    pass
+    """
+    Converte as coordenadas de data_df em objetos do tipo Point, as coordenadas de contour_df em objeto Polygon
+    Seleciona e retorna data_df apenas os pontos que estão dentro do polígono de contour_df.
+    :param contour_df:
+    :param data_df:
+    :return: data_df pd.DataFrame
+    """
+    contour_geometry = Polygon(contour_df[['lat', 'long']].values)
+    data_df = gpd.GeoDataFrame(
+        data_df, crs='EPSG:4326',
+        geometry=[Point(coord) for coord in zip(data_df['lat'], data_df['long'])]
+    )
+    data_df = data_df.loc[data_df['geometry'].within(contour_geometry), :]
+    return pd.DataFrame(data_df)
 
 
 def main() -> None:
@@ -45,9 +60,11 @@ def main() -> None:
         temp = read_data_file(filename)
         temp['forecasted_date'] = forecasted_date
         data_df = pd.concat([data_df, temp], axis=0)
+
+    contour_file = './PSATCMG_CAMARGOS.bln'
+    contour_df: pd.DataFrame = read_contour_file('PSATCMG_CAMARGOS.bln')
+    data_df = apply_contour(contour_df=contour_df, data_df=data_df)
     print(data_df.shape, data_df.head())
-    # contour_df: pd.DataFrame = read_contour_file('PSATCMG_CAMARGOS.bln')
-    # contour_df: pd.DataFrame = apply_contour(contour_df=contour_df, data_df=data_df)
 
 
 if __name__ == '__main__':
