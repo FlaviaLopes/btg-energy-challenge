@@ -5,6 +5,8 @@ from functools import wraps
 import os
 import geopandas as gpd
 from shapely import Point, Polygon
+import seaborn as sns
+import matplotlib.pyplot as plt
 
 
 def read_data_file(file_path: str) -> pd.DataFrame:
@@ -47,6 +49,46 @@ def apply_contour(contour_df: pd.DataFrame, data_df: pd.DataFrame) -> pd.DataFra
     return pd.DataFrame(data_df)
 
 
+def plot_accumulated_precipitation(data_df: pd.DataFrame, x='forecasted_date', y='data_value') -> None:
+    """
+    Recebe dados de previsão de precipitação da área de interesse já agrupados por dia previsto.
+    Calcula a soma cumulativa e plota em dois eixos, barras e linhas, a precipitação diária e acumulada do preríodo.
+    :param data_df:
+    :param x: período previsto (dd/mm/yy)
+    :param y: valor de precipitação previsto
+    :return: exporta gráfico
+    """
+    data_df['cumsum'] = data_df[y].cumsum()
+
+    _ = sns.set(style='whitegrid', font_scale=1)
+    ax1 = sns.barplot(x=data_df[x], y=data_df[y], color='orange', alpha=0.2)
+    ax1.set_xlabel('Dia previsto')
+    ax1.set_ylabel('Precipitacao Diária (mm)', fontdict={'family': 'sans-serif', 'size': 10}, labelpad=20.0)
+    ax1.set_xticks(data_df[x])
+    ax1.set_xticklabels(data_df[x], va='center', rotation=45, size=10, fontdict={'family': 'sans-serif', 'size': 8})
+    ax1.yaxis.grid(False)
+    ax1.spines['right'].set_visible(False)
+    ax1.spines['top'].set_visible(False)
+    ax1.spines['bottom'].set_visible(False)
+
+    ax2 = ax1.twinx()
+    _ = sns.lineplot(x=data_df[x], y=data_df['cumsum'], color='orange', linestyle='-', linewidth=2, marker='o',
+                     markersize=5, ax=ax2)
+    ax2.set_ylabel('Precipitação Acumulada (mm)', fontdict={'family': 'sans-serif', 'size': 10}, labelpad=20.0)
+    ax2.yaxis.grid(False)
+    ax2.spines['left'].set_visible(False)
+    ax2.spines['top'].set_visible(False)
+    ax2.spines['bottom'].set_visible(False)
+
+    [ax2.text(data_df.at[i, 'forecasted_date'], data_df.at[i, 'cumsum'], round(data_df.at[i, 'cumsum'], 2), ha='right',
+              size=9) for i in range(data_df.shape[0])]
+
+    plt.legend(labels=['Precipitação acumulada (mm)', 'Precipitação diária (mm)'], bbox_to_anchor=(0.8, -0.2))
+    plt.title('Precipitação diária e acumulada (mm)', fontdict={'family': 'sans-serif', 'size': 12}, pad=30.0)
+    plt.tight_layout()
+    plt.savefig(f"ETA40_pacummulated{data_df[x].min().replace('/', '')}a{data_df[x].max().replace('/', '')}.png")
+
+
 def main() -> None:
     forecast_files_dir = './forecast_files'
     forecast_files = os.listdir(forecast_files_dir)
@@ -64,7 +106,9 @@ def main() -> None:
     contour_file = './PSATCMG_CAMARGOS.bln'
     contour_df: pd.DataFrame = read_contour_file('PSATCMG_CAMARGOS.bln')
     data_df = apply_contour(contour_df=contour_df, data_df=data_df)
-    print(data_df.shape, data_df.head())
+
+    data_df = data_df.groupby('forecasted_date')[['data_value']].sum().reset_index()
+    plot_accumulated_precipitation(data_df, x='forecasted_date', y='data_value')
 
 
 if __name__ == '__main__':
